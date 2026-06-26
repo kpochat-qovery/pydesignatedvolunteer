@@ -16,11 +16,15 @@ _FAKE_KEY_CONTENT = json.dumps({"type": "service_account", "project_id": "test"}
 _FULL_ENV = {
     "SLACK_BOT_TOKEN": "xoxb-test-token",
     "SLACK_CHANNEL_ID": "C12345678",
-    "SLACK_BOT_USER_ID": "U12345678",
     "GOOGLE_WORKSPACE_GROUP_EMAIL": "group@example.com",
     "GOOGLE_SERVICE_ACCOUNT_KEY": _FAKE_KEY_CONTENT,
     "GOOGLE_WORKSPACE_ADMIN_EMAIL": "admin@example.com",
 }
+
+
+@pytest.fixture(autouse=True)
+def no_dotenv(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("src.config.load_dotenv", lambda *args, **kwargs: None)
 
 
 def test_load_config_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -32,7 +36,6 @@ def test_load_config_success(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(config, Config)
     assert config.slack_bot_token == "xoxb-test-token"
     assert config.slack_channel_id == "C12345678"
-    assert config.slack_bot_user_id == "U12345678"
     assert config.google_workspace_group_email == "group@example.com"
     assert config.google_service_account_key_content == _FAKE_KEY_CONTENT
     assert config.google_workspace_admin_email == "admin@example.com"
@@ -40,7 +43,6 @@ def test_load_config_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.parametrize("missing_var", [
     "SLACK_BOT_TOKEN",
-    "SLACK_BOT_USER_ID",
     "GOOGLE_WORKSPACE_GROUP_EMAIL",
     "GOOGLE_WORKSPACE_ADMIN_EMAIL",
 ])

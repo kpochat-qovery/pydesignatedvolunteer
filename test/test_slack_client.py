@@ -15,7 +15,6 @@ def config() -> Config:
     return Config(
         slack_bot_token="xoxb-test",
         slack_channel_id="C123",
-        slack_bot_user_id="UBOT123",
         google_workspace_group_email="group@example.com",
         google_service_account_key_content='{"type": "service_account"}',
         google_workspace_admin_email="admin@example.com",
@@ -25,7 +24,9 @@ def config() -> Config:
 
 @pytest.fixture
 def mock_web_client() -> MagicMock:
-    return MagicMock()
+    client = MagicMock()
+    client.auth_test.return_value = {"user_id": "UBOT123"}
+    return client
 
 
 @pytest.fixture
@@ -161,7 +162,7 @@ def test_resolve_email_to_user_id_api_error(
 def test_post_memory_message_embeds_metadata(
     client: SlackClient, mock_web_client: MagicMock
 ) -> None:
-    client.post_memory_message("C123", "volunteer@example.com")
+    client.post_memory_message("C123", "volunteer@example.com", "U123", False)
 
     mock_web_client.chat_postMessage.assert_called_once()
     kwargs = mock_web_client.chat_postMessage.call_args.kwargs
@@ -177,7 +178,7 @@ def test_post_memory_message_raises_on_api_error(
     mock_web_client.chat_postMessage.side_effect = _slack_error("not_in_channel")
 
     with pytest.raises(SlackClientError, match="not_in_channel"):
-        client.post_memory_message("C123", "user@example.com")
+        client.post_memory_message("C123", "user@example.com", "U123", False)
 
 
 def test_post_announcement_mentions_user(
