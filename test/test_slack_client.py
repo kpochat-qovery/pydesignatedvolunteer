@@ -158,27 +158,47 @@ def test_resolve_email_to_user_id_api_error(
         client.resolve_email_to_slack_user_id("user@example.com")
 
 
-def test_post_message_embeds_metadata(
+def test_post_memory_message_embeds_metadata(
     client: SlackClient, mock_web_client: MagicMock
 ) -> None:
-    client.post_pick_message("C123", "U456", "volunteer@example.com")
+    client.post_memory_message("C123", "volunteer@example.com")
 
     mock_web_client.chat_postMessage.assert_called_once()
     kwargs = mock_web_client.chat_postMessage.call_args.kwargs
     assert kwargs["channel"] == "C123"
-    assert "<@U456>" in kwargs["text"]
     assert "picked-by-bot" in kwargs["text"]
     assert kwargs["metadata"]["event_type"] == "designated_volunteer_picked"
     assert kwargs["metadata"]["event_payload"]["picked_email"] == "volunteer@example.com"
 
 
-def test_post_message_raises_on_api_error(
+def test_post_memory_message_raises_on_api_error(
     client: SlackClient, mock_web_client: MagicMock
 ) -> None:
     mock_web_client.chat_postMessage.side_effect = _slack_error("not_in_channel")
 
     with pytest.raises(SlackClientError, match="not_in_channel"):
-        client.post_pick_message("C123", "U456", "user@example.com")
+        client.post_memory_message("C123", "user@example.com")
+
+
+def test_post_announcement_mentions_user(
+    client: SlackClient, mock_web_client: MagicMock
+) -> None:
+    client.post_announcement("C999", "U456")
+
+    mock_web_client.chat_postMessage.assert_called_once()
+    kwargs = mock_web_client.chat_postMessage.call_args.kwargs
+    assert kwargs["channel"] == "C999"
+    assert "<@U456>" in kwargs["text"]
+    assert "metadata" not in kwargs
+
+
+def test_post_announcement_raises_on_api_error(
+    client: SlackClient, mock_web_client: MagicMock
+) -> None:
+    mock_web_client.chat_postMessage.side_effect = _slack_error("not_in_channel")
+
+    with pytest.raises(SlackClientError, match="not_in_channel"):
+        client.post_announcement("C999", "U456")
 
 
 def _channels_page(channels: list[dict], next_cursor: str = "") -> dict:

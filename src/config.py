@@ -33,6 +33,8 @@ class Config:
     google_workspace_admin_email: str
     google_service_account_key_content: str
     slack_channel_name: str | None = None
+    slack_bot_memory_channel_id: str | None = None
+    slack_bot_memory_channel_name: str | None = None
     history_lookback_days: int = DEFAULT_HISTORY_LOOKBACK_DAYS
     bot_message_marker: str = DEFAULT_BOT_MESSAGE_MARKER
 
@@ -58,6 +60,14 @@ def load_config() -> Config:
         )
     if slack_channel_id:
         slack_channel_name = None
+
+    memory_channel_id = os.environ.get("SLACK_BOT_MEMORY_CHANNEL_ID") or None
+    memory_channel_name = os.environ.get("SLACK_BOT_MEMORY_CHANNEL_NAME") or None
+    if not memory_channel_id and not memory_channel_name:
+        memory_channel_id = slack_channel_id
+        memory_channel_name = slack_channel_name
+    elif memory_channel_id:
+        memory_channel_name = None
 
     key_content = os.environ.get("GOOGLE_SERVICE_ACCOUNT_KEY")
     key_file = os.environ.get("GOOGLE_SERVICE_ACCOUNT_KEY_FILE")
@@ -96,6 +106,8 @@ def load_config() -> Config:
         google_workspace_admin_email=os.environ["GOOGLE_WORKSPACE_ADMIN_EMAIL"],
         google_service_account_key_content=google_service_account_key_content,
         slack_channel_name=slack_channel_name,
+        slack_bot_memory_channel_id=memory_channel_id,
+        slack_bot_memory_channel_name=memory_channel_name,
         history_lookback_days=history_lookback_days,
         bot_message_marker=os.environ.get("BOT_MESSAGE_MARKER", DEFAULT_BOT_MESSAGE_MARKER),
     )

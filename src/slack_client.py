@@ -126,8 +126,8 @@ class SlackClient:
                 return None
             raise SlackClientError(f"Failed to resolve email {email!r}: {exc}") from exc
 
-    def post_pick_message(self, channel_id: str, slack_user_id: str, picked_email: str) -> None:
-        text = f"<@{slack_user_id}> is this week's designated volunteer! {self._bot_message_marker}"
+    def post_memory_message(self, channel_id: str, picked_email: str) -> None:
+        text = f"Volunteer record {self._bot_message_marker}"
         try:
             self._client.chat_postMessage(
                 channel=channel_id,
@@ -138,6 +138,15 @@ class SlackClient:
                 },
             )
         except SlackApiError as exc:
-            raise SlackClientError(f"Failed to post message to {channel_id!r}: {exc}") from exc
+            raise SlackClientError(f"Failed to post memory message to {channel_id!r}: {exc}") from exc
 
-        logger.info("Posted pick message for %s in channel %s", picked_email, channel_id)
+        logger.info("Posted memory message for %s in channel %s", picked_email, channel_id)
+
+    def post_announcement(self, channel_id: str, slack_user_id: str) -> None:
+        text = f"<@{slack_user_id}> is this week's designated volunteer!"
+        try:
+            self._client.chat_postMessage(channel=channel_id, text=text)
+        except SlackApiError as exc:
+            raise SlackClientError(f"Failed to post announcement to {channel_id!r}: {exc}") from exc
+
+        logger.info("Posted announcement for user %s in channel %s", slack_user_id, channel_id)

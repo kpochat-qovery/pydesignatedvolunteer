@@ -29,13 +29,16 @@ Mirrors https://github.com/kpochat-qovery/pyslackrandomcoffee.
 ```
 main.run()
   ├─ load_config()
-  ├─ GoogleClient.get_group_member_emails(group_email)        → all_emails
-  ├─ SlackClient.get_bot_messages(channel_id, lookback_days)  → messages
-  ├─ extract_picked_emails(messages)                          → already_picked
-  ├─ pick_volunteer(all_emails, already_picked)               → picked_email
-  ├─ SlackClient.resolve_email_to_user_id(picked_email)       → slack_user_id
-  └─ SlackClient.post_pick_message(channel_id, slack_user_id, picked_email) → done
+  ├─ GoogleClient.get_group_member_emails(group_email)              → all_emails
+  ├─ SlackClient.get_bot_messages(memory_channel_id, lookback_days) → messages
+  ├─ extract_picked_emails(messages)                                → already_picked
+  ├─ pick_volunteer(all_emails, already_picked)                     → picked_email
+  ├─ SlackClient.resolve_email_to_user_id(picked_email)             → slack_user_id
+  ├─ SlackClient.post_memory_message(memory_channel_id, picked_email) → tracking record
+  └─ SlackClient.post_announcement(channel_id, slack_user_id)       → user-facing mention
 ```
+
+`memory_channel_id` resolves to `SLACK_BOT_MEMORY_CHANNEL_ID`/`SLACK_BOT_MEMORY_CHANNEL_NAME` when set, otherwise falls back to the main channel. When they are the same, both messages land in the same channel.
 
 ## Code Style
 
@@ -52,13 +55,19 @@ main.run()
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `SLACK_BOT_TOKEN` | Yes | — | Bot User OAuth Token (`xoxb-…`) |
-| `SLACK_CHANNEL_ID` | Yes | — | ID of the channel to post to and read history from |
+| `SLACK_CHANNEL_ID` | Yes* | — | ID of the main channel (user-facing announcements) |
+| `SLACK_CHANNEL_NAME` | Yes* | — | Name of the main channel (alternative to `SLACK_CHANNEL_ID`) |
 | `SLACK_BOT_USER_ID` | Yes | — | Bot's own user ID (filters its own messages from history) |
+| `SLACK_BOT_MEMORY_CHANNEL_ID` | No | main channel | ID of the bot-memory channel (tracking records + metadata) |
+| `SLACK_BOT_MEMORY_CHANNEL_NAME` | No | main channel | Name of the bot-memory channel (alternative to `SLACK_BOT_MEMORY_CHANNEL_ID`) |
 | `GOOGLE_WORKSPACE_GROUP_EMAIL` | Yes | — | Email address of the Google Workspace group |
-| `GOOGLE_SERVICE_ACCOUNT_KEY_FILE` | Yes | — | Path to service account JSON key file |
+| `GOOGLE_SERVICE_ACCOUNT_KEY_FILE` | Yes* | — | Path to service account JSON key file |
+| `GOOGLE_SERVICE_ACCOUNT_KEY` | Yes* | — | Inline service account JSON key content (alternative to `KEY_FILE`) |
 | `GOOGLE_WORKSPACE_ADMIN_EMAIL` | Yes | — | Admin email to impersonate for domain-wide delegation |
 | `HISTORY_LOOKBACK_DAYS` | No | `90` | How far back (days) to search Slack history |
-| `BOT_MESSAGE_MARKER` | No | `picked-by-bot` | Fixed string in all bot messages used to identify them |
+| `BOT_MESSAGE_MARKER` | No | `picked-by-bot` | Fixed string in all bot memory messages used to identify them |
+
+\* At least one of the marked pairs is required.
 
 ## Google Auth
 

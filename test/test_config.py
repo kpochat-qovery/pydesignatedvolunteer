@@ -179,3 +179,73 @@ def test_load_config_custom_optional_vars(monkeypatch: pytest.MonkeyPatch) -> No
 
     assert config.history_lookback_days == 30
     assert config.bot_message_marker == "custom-marker"
+
+
+def test_load_config_memory_channel_defaults_to_main_channel_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for key, value in _FULL_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.delenv("SLACK_BOT_MEMORY_CHANNEL_ID", raising=False)
+    monkeypatch.delenv("SLACK_BOT_MEMORY_CHANNEL_NAME", raising=False)
+
+    config = load_config()
+
+    assert config.slack_bot_memory_channel_id == "C12345678"
+    assert config.slack_bot_memory_channel_name is None
+
+
+def test_load_config_memory_channel_defaults_to_main_channel_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for key, value in _FULL_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.delenv("SLACK_CHANNEL_ID")
+    monkeypatch.setenv("SLACK_CHANNEL_NAME", "general")
+    monkeypatch.delenv("SLACK_BOT_MEMORY_CHANNEL_ID", raising=False)
+    monkeypatch.delenv("SLACK_BOT_MEMORY_CHANNEL_NAME", raising=False)
+
+    config = load_config()
+
+    assert config.slack_bot_memory_channel_id is None
+    assert config.slack_bot_memory_channel_name == "general"
+
+
+def test_load_config_memory_channel_id_overrides_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for key, value in _FULL_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("SLACK_BOT_MEMORY_CHANNEL_ID", "CMEM999")
+
+    config = load_config()
+
+    assert config.slack_bot_memory_channel_id == "CMEM999"
+    assert config.slack_bot_memory_channel_name is None
+
+
+def test_load_config_memory_channel_name_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for key, value in _FULL_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("SLACK_BOT_MEMORY_CHANNEL_NAME", "bot-memory")
+
+    config = load_config()
+
+    assert config.slack_bot_memory_channel_id is None
+    assert config.slack_bot_memory_channel_name == "bot-memory"
+
+
+def test_load_config_memory_channel_id_takes_precedence_over_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for key, value in _FULL_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("SLACK_BOT_MEMORY_CHANNEL_ID", "CMEM999")
+    monkeypatch.setenv("SLACK_BOT_MEMORY_CHANNEL_NAME", "bot-memory")
+
+    config = load_config()
+
+    assert config.slack_bot_memory_channel_id == "CMEM999"
+    assert config.slack_bot_memory_channel_name is None
