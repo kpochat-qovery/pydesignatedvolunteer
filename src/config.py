@@ -12,7 +12,6 @@ DEFAULT_BOT_MESSAGE_MARKER = "picked-by-bot"
 
 _REQUIRED_VARS = [
     "SLACK_BOT_TOKEN",
-    "SLACK_CHANNEL_ID",
     "SLACK_BOT_USER_ID",
     "GOOGLE_WORKSPACE_GROUP_EMAIL",
     "GOOGLE_WORKSPACE_ADMIN_EMAIL",
@@ -28,11 +27,12 @@ class ConfigurationError(Exception):
 @dataclass
 class Config:
     slack_bot_token: str
-    slack_channel_id: str
+    slack_channel_id: str | None
     slack_bot_user_id: str
     google_workspace_group_email: str
     google_workspace_admin_email: str
     google_service_account_key_content: str
+    slack_channel_name: str | None = None
     history_lookback_days: int = DEFAULT_HISTORY_LOOKBACK_DAYS
     bot_message_marker: str = DEFAULT_BOT_MESSAGE_MARKER
 
@@ -49,6 +49,15 @@ def load_config() -> Config:
     missing = [var for var in _REQUIRED_VARS if not os.environ.get(var)]
     if missing:
         raise ConfigurationError(f"Missing required environment variable(s): {', '.join(missing)}")
+
+    slack_channel_id = os.environ.get("SLACK_CHANNEL_ID") or None
+    slack_channel_name = os.environ.get("SLACK_CHANNEL_NAME") or None
+    if not slack_channel_id and not slack_channel_name:
+        raise ConfigurationError(
+            "Missing required environment variable(s): SLACK_CHANNEL_ID or SLACK_CHANNEL_NAME"
+        )
+    if slack_channel_id:
+        slack_channel_name = None
 
     key_content = os.environ.get("GOOGLE_SERVICE_ACCOUNT_KEY")
     key_file = os.environ.get("GOOGLE_SERVICE_ACCOUNT_KEY_FILE")
@@ -81,11 +90,12 @@ def load_config() -> Config:
 
     return Config(
         slack_bot_token=os.environ["SLACK_BOT_TOKEN"],
-        slack_channel_id=os.environ["SLACK_CHANNEL_ID"],
+        slack_channel_id=slack_channel_id,
         slack_bot_user_id=os.environ["SLACK_BOT_USER_ID"],
         google_workspace_group_email=os.environ["GOOGLE_WORKSPACE_GROUP_EMAIL"],
         google_workspace_admin_email=os.environ["GOOGLE_WORKSPACE_ADMIN_EMAIL"],
         google_service_account_key_content=google_service_account_key_content,
+        slack_channel_name=slack_channel_name,
         history_lookback_days=history_lookback_days,
         bot_message_marker=os.environ.get("BOT_MESSAGE_MARKER", DEFAULT_BOT_MESSAGE_MARKER),
     )

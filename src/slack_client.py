@@ -16,6 +16,8 @@ from src.config import Config
 RATE_LIMIT_DELAY_SECONDS: float = 1.0
 HISTORY_PAGE_SIZE: int = 200
 MAX_HISTORY_PAGES: int = 100
+CHANNELS_PAGE_SIZE: int = 200
+MAX_CHANNELS_PAGES: int = 50
 _METADATA_EVENT_TYPE: str = "designated_volunteer_picked"
 
 logger = logging.getLogger(__name__)
@@ -83,6 +85,37 @@ class SlackClient:
                 seen.add(email)
                 result.append(email)
         return result
+
+    def resolve_channel_name_to_id(self, channel_name: str) -> str:
+        name = channel_name.lstrip("#")
+        cursor: str | None = None
+        try:
+            for _ in range(MAX_CHANNELS_PAGES):
+                kwargs: dict[str, Any] = {
+                    "limit": CHANNELS_PAGE_SIZE,
+                    "exclude_archived": True,
+                }
+                if cursor:
+                    kwargs["cursor"] = cursor
+
+                response = self._client.conversations_list(**kwargs)
+
+                for channel in response["channels"]:
+                    if channel["name"] == name:
+                        logger.info("Resolved channel name %r to ID %s", channel_name, channel["id"])
+                        return channel["id"]
+
+                next_cursor = response.get("response_metadata", {}).get("next_cursor")
+                if not next_cursor:
+                    break
+
+                cursor = next_cursor
+                time.sleep(RATE_LIMIT_DELAY_SECONDS)
+
+        except SlackApiError as exc:
+            raise SlackClientError(f"Failed to list channels: {exc}") from exc
+
+        raise SlackClientError(f"Channel {channel_name!r} not found")
 
     def resolve_email_to_slack_user_id(self, email: str) -> str | None:
         try:

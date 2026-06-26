@@ -40,7 +40,6 @@ def test_load_config_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.parametrize("missing_var", [
     "SLACK_BOT_TOKEN",
-    "SLACK_CHANNEL_ID",
     "SLACK_BOT_USER_ID",
     "GOOGLE_WORKSPACE_GROUP_EMAIL",
     "GOOGLE_WORKSPACE_ADMIN_EMAIL",
@@ -54,6 +53,39 @@ def test_load_config_missing_required_var(
 
     with pytest.raises(ConfigurationError, match=missing_var):
         load_config()
+
+
+def test_load_config_missing_both_channel_vars(monkeypatch: pytest.MonkeyPatch) -> None:
+    for key, value in _FULL_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.delenv("SLACK_CHANNEL_ID")
+    monkeypatch.delenv("SLACK_CHANNEL_NAME", raising=False)
+
+    with pytest.raises(ConfigurationError, match="SLACK_CHANNEL_ID or SLACK_CHANNEL_NAME"):
+        load_config()
+
+
+def test_load_config_channel_name_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    for key, value in _FULL_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.delenv("SLACK_CHANNEL_ID")
+    monkeypatch.setenv("SLACK_CHANNEL_NAME", "general")
+
+    config = load_config()
+
+    assert config.slack_channel_id is None
+    assert config.slack_channel_name == "general"
+
+
+def test_load_config_channel_id_takes_precedence_over_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    for key, value in _FULL_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("SLACK_CHANNEL_NAME", "general")
+
+    config = load_config()
+
+    assert config.slack_channel_id == "C12345678"
+    assert config.slack_channel_name is None
 
 
 def test_load_config_missing_both_google_key_vars(monkeypatch: pytest.MonkeyPatch) -> None:

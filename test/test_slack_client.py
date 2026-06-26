@@ -179,3 +179,71 @@ def test_post_message_raises_on_api_error(
 
     with pytest.raises(SlackClientError, match="not_in_channel"):
         client.post_pick_message("C123", "U456", "user@example.com")
+
+
+def _channels_page(channels: list[dict], next_cursor: str = "") -> dict:
+    return {
+        "channels": channels,
+        "response_metadata": {"next_cursor": next_cursor},
+    }
+
+
+def test_resolve_channel_name_to_id_success(
+    client: SlackClient, mock_web_client: MagicMock
+) -> None:
+    mock_web_client.conversations_list.return_value = _channels_page(
+        [{"id": "C999", "name": "general"}, {"id": "C111", "name": "random"}]
+    )
+
+    result = client.resolve_channel_name_to_id("general")
+
+    assert result == "C999"
+
+
+def test_resolve_channel_name_to_id_strips_hash(
+    client: SlackClient, mock_web_client: MagicMock
+) -> None:
+    mock_web_client.conversations_list.return_value = _channels_page(
+        [{"id": "C999", "name": "general"}]
+    )
+
+    result = client.resolve_channel_name_to_id("#general")
+
+    assert result == "C999"
+
+
+def test_resolve_channel_name_to_id_paginates(
+    client: SlackClient, mock_web_client: MagicMock
+) -> None:
+    mock_web_client.conversations_list.side_effect = [
+        _channels_page([{"id": "C111", "name": "random"}], next_cursor="cursor-xyz"),
+        _channels_page([{"id": "C999", "name": "general"}]),
+    ]
+
+    with patch("src.slack_client.time.sleep"):
+        result = client.resolve_channel_name_to_id("general")
+
+    assert result == "C999"
+    assert mock_web_client.conversations_list.call_count == 2
+    second_call_kwargs = mock_web_client.conversations_list.call_args_list[1].kwargs
+    assert second_call_kwargs["cursor"] == "cursor-xyz"
+
+
+def test_resolve_channel_name_to_id_not_found(
+    client: SlackClient, mock_web_client: MagicMock
+) -> None:
+    mock_web_client.conversations_list.return_value = _channels_page(
+        [{"id": "C111", "name": "random"}]
+    )
+
+    with pytest.raises(SlackClientError, match="not found"):
+        client.resolve_channel_name_to_id("nonexistent")
+
+
+def test_resolve_channel_name_to_id_raises_on_api_error(
+    client: SlackClient, mock_web_client: MagicMock
+) -> None:
+    mock_web_client.conversations_list.side_effect = _slack_error("not_authed")
+
+    with pytest.raises(SlackClientError, match="not_authed"):
+        client.resolve_channel_name_to_id("general")

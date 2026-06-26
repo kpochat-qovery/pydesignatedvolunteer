@@ -28,7 +28,10 @@ def run() -> None:
         member_emails = google_client.get_group_member_emails(config.google_workspace_group_email)
 
         slack_client = SlackClient(config)
-        messages = slack_client.get_bot_messages(config.slack_channel_id, config.history_lookback_days)
+        channel_id = config.slack_channel_id or slack_client.resolve_channel_name_to_id(
+            config.slack_channel_name  # type: ignore[arg-type]
+        )
+        messages = slack_client.get_bot_messages(channel_id, config.history_lookback_days)
 
         picked_emails = extract_picked_emails(messages)
         picked_email = pick_volunteer(all_emails=member_emails, already_picked=picked_emails)
@@ -40,7 +43,7 @@ def run() -> None:
             )
             return
 
-        slack_client.post_pick_message(config.slack_channel_id, slack_user_id, picked_email)
+        slack_client.post_pick_message(channel_id, slack_user_id, picked_email)
 
     except (GoogleClientError, SlackClientError, PickerError) as exc:
         logger.error("Bot run failed: %s", exc)
