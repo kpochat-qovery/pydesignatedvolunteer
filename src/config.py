@@ -6,13 +6,14 @@ Raises ConfigurationError on any missing or invalid required variable.
 import logging
 import os
 from dataclasses import dataclass
+from dotenv import load_dotenv, find_dotenv
 
-DEFAULT_HISTORY_LOOKBACK_DAYS = 90
-DEFAULT_BOT_MESSAGE_MARKER = "picked-by-bot"
+# 2 years and change
+DEFAULT_HISTORY_LOOKBACK_DAYS = 750 
+DEFAULT_BOT_MESSAGE_MARKER = "designated-volunteer-bot"
 
 _REQUIRED_VARS = [
     "SLACK_BOT_TOKEN",
-    "SLACK_BOT_USER_ID",
     "GOOGLE_WORKSPACE_GROUP_EMAIL",
     "GOOGLE_WORKSPACE_ADMIN_EMAIL",
 ]
@@ -28,7 +29,6 @@ class ConfigurationError(Exception):
 class Config:
     slack_bot_token: str
     slack_channel_id: str | None
-    slack_bot_user_id: str
     google_workspace_group_email: str
     google_workspace_admin_email: str
     google_service_account_key_content: str
@@ -48,6 +48,10 @@ def load_config() -> Config:
     Raises:
         ConfigurationError: If any required variable is absent or invalid.
     """
+    
+    # Load .env file
+    load_dotenv(find_dotenv())
+
     missing = [var for var in _REQUIRED_VARS if not os.environ.get(var)]
     if missing:
         raise ConfigurationError(f"Missing required environment variable(s): {', '.join(missing)}")
@@ -101,7 +105,6 @@ def load_config() -> Config:
     return Config(
         slack_bot_token=os.environ["SLACK_BOT_TOKEN"],
         slack_channel_id=slack_channel_id,
-        slack_bot_user_id=os.environ["SLACK_BOT_USER_ID"],
         google_workspace_group_email=os.environ["GOOGLE_WORKSPACE_GROUP_EMAIL"],
         google_workspace_admin_email=os.environ["GOOGLE_WORKSPACE_ADMIN_EMAIL"],
         google_service_account_key_content=google_service_account_key_content,

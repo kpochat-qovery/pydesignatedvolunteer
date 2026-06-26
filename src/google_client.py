@@ -12,7 +12,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from src.config import Config
+from config import Config
 
 PAGE_REQUEST_DELAY_SECONDS: float = 0.5
 MEMBERS_PAGE_SIZE: int = 200
