@@ -4,6 +4,7 @@ Uses a service account with domain-wide delegation to read group membership.
 All public methods raise GoogleClientError on API failures.
 """
 
+import json
 import logging
 import time
 
@@ -29,8 +30,8 @@ class GoogleClientError(Exception):
 class GoogleClient:
     def __init__(self, config: Config) -> None:
         try:
-            credentials = service_account.Credentials.from_service_account_file(
-                config.google_service_account_key_file,
+            credentials = service_account.Credentials.from_service_account_info(
+                json.loads(config.google_service_account_key_content),
                 scopes=SCOPES,
             ).with_subject(config.google_workspace_admin_email)
             self._service = build("admin", "directory_v1", credentials=credentials)

@@ -17,7 +17,7 @@ def config() -> Config:
         slack_channel_id="C123",
         slack_bot_user_id="UBOT123",
         google_workspace_group_email="group@example.com",
-        google_service_account_key_file="/path/to/key.json",
+        google_service_account_key_content='{"type": "service_account"}',
         google_workspace_admin_email="admin@example.com",
         bot_message_marker="picked-by-bot",
     )

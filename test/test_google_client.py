@@ -11,9 +11,12 @@ from src.google_client import GoogleClient, GoogleClientError
 GROUP_EMAIL = "team@example.com"
 
 
-def _make_config(key_file: str = "/fake/key.json", admin_email: str = "admin@example.com") -> MagicMock:
+_FAKE_KEY_CONTENT = '{"type": "service_account", "project_id": "test"}'
+
+
+def _make_config(key_content: str = _FAKE_KEY_CONTENT, admin_email: str = "admin@example.com") -> MagicMock:
     config = MagicMock()
-    config.google_service_account_key_file = key_file
+    config.google_service_account_key_content = key_content
     config.google_workspace_admin_email = admin_email
     return config
 
@@ -21,7 +24,7 @@ def _make_config(key_file: str = "/fake/key.json", admin_email: str = "admin@exa
 def _make_client() -> GoogleClient:
     """Return a GoogleClient with all Google SDK calls patched out."""
     with (
-        patch("src.google_client.service_account.Credentials.from_service_account_file"),
+        patch("src.google_client.service_account.Credentials.from_service_account_info"),
         patch("src.google_client.build"),
     ):
         return GoogleClient(_make_config())
@@ -131,10 +134,10 @@ def test_get_group_member_emails_raises_on_http_error() -> None:
 def test_get_group_member_emails_raises_on_auth_failure() -> None:
     with (
         patch(
-            "src.google_client.service_account.Credentials.from_service_account_file",
-            side_effect=ValueError("invalid key file"),
+            "src.google_client.service_account.Credentials.from_service_account_info",
+            side_effect=ValueError("invalid key content"),
         ),
         patch("src.google_client.build"),
     ):
         with pytest.raises(GoogleClientError, match="Failed to initialise"):
-            GoogleClient(_make_config(key_file="/nonexistent/key.json"))
+            GoogleClient(_make_config(key_content="not-valid-json"))
